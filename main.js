@@ -71,6 +71,49 @@ let bullet4Bool = false;
 
 let firedInCycle = [];
 
+let bulletCount4 = Matter.Bodies.rectangle(window.innerWidth-50, 50, 6, 12, {
+	collisionFilter: {
+		group: -1
+	}
+});
+let bulletCount3 = Matter.Bodies.rectangle(bulletCount4.position.x-20, bulletCount4.position.y, 6, 12, {
+	collisionFilter: {
+		group: -1
+	}
+});
+let bulletCount2 = Matter.Bodies.rectangle(bulletCount3.position.x-20, bulletCount3.position.y, 6, 12, {
+	collisionFilter: {
+		group: -1
+	}
+});
+let bulletCount1 = Matter.Bodies.rectangle(bulletCount2.position.x-20, bulletCount2.position.y, 6, 12, {
+	collisionFilter: {
+		group: -1
+	}
+});
+
+
+World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4])
+
+let clock = 0;
+let reloadTime = 0;
+
+let reloadTimer = Matter.Bodies.rectangle(window.innerWidth-110, 50, 100, 12, {
+	collisionFilter: {
+		group: -1
+	}
+})
+let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
+	collisionFilter: {
+		group: -1
+	},
+	render: {
+		fillStyle: "#18181d"
+	}
+})
+
+World.add(engine.world, [reloadTimer, reloadTimer2])
+
 setInterval(function () {
 	
 	player.velocity.x*.7;
@@ -133,6 +176,34 @@ setInterval(function () {
 		keys[32] = false;
 	}
 	capSpeed();
+
+	if (!bullet1Bool) {
+		bulletCount1.render.visible = true
+	}
+	if (bullet1Bool) {
+		bulletCount1.render.visible = false
+	}
+	if (!bullet2Bool) {
+		bulletCount2.render.visible = true
+	}
+	if (bullet2Bool) {
+		bulletCount2.render.visible = false
+	}
+	if (!bullet3Bool) {
+		bulletCount3.render.visible = true
+	}
+	if (bullet3Bool) {
+		bulletCount3.render.visible = false
+	}
+	if (!bullet4Bool) {
+		bulletCount4.render.visible = true
+	}
+	if (bullet4Bool) {
+		bulletCount4.render.visible = false
+	}
+
+	clock++;
+	reload();
 	
 }, 1000/60)
 
@@ -146,7 +217,7 @@ function fireBullet () {
 		})
 		Matter.Body.setVelocity(bullet1, {
 			x: 0,
-			y: -5
+			y: -10
 		})
 		firedInCycle.push(bullet1);
 		console.log(firedInCycle.length)
@@ -160,7 +231,7 @@ function fireBullet () {
 		})
 		Matter.Body.setVelocity(bullet2, {
 			x: 0,
-			y: -5
+			y: -10
 		})
 		firedInCycle.push(bullet2);
 	}
@@ -173,27 +244,54 @@ function fireBullet () {
 		})
 		Matter.Body.setVelocity(bullet3, {
 			x: 0,
-			y: -5
+			y: -10
 		})
 		firedInCycle.push(bullet3);		}
 	if (!bullet4Bool && firedInCycle.length === 0) {
 		World.add(engine.world, bullet4);
-		bulle43Bool = true;
+		bullet4Bool = true;
 		Matter.Body.setPosition(bullet4, {
 			x: player.position.x,
 			y: player.position.y - 30
 		})
 		Matter.Body.setVelocity(bullet4, {
 			x: 0,
-			y: -5
+			y: -10
 		})
 		firedInCycle.push(bullet4);
 	}
-	if (bullet1Bool && bullet2Bool && bullet3Bool && bullet4Bool) {
-		
-	}
 
 	firedInCycle = [];
+}
+function reload () {
+	if (bullet1Bool && bullet2Bool && bullet3Bool && bullet4Bool) {
+		reloadTimer.render.visible = true;
+		reloadTimer2.render.visible = true;
+
+		Matter.Body.setPosition(reloadTimer2, {
+			x: (window.innerWidth-210)+(1/2*(clock-reloadTime)),
+			y: 50
+		})
+
+		if (clock >= reloadTime+200) {
+			World.remove(engine.world, [bullet1, bullet2, bullet3, bullet4])
+			bullet1Bool = false;
+			bullet2Bool = false;
+			bullet3Bool = false;
+			bullet4Bool = false;
+		}
+	}
+	if (!bullet1Bool || !bullet2Bool || !bullet3Bool || !bullet4Bool) {
+		reloadTime = clock;
+
+		reloadTimer.render.visible = false;
+		reloadTimer2.render.visible = false;
+
+		Matter.Body.setPosition(reloadTimer2, {
+			x: window.innerWidth-210,
+			y: 50
+		})
+	}
 }
 
 function capSpeed () {
@@ -235,25 +333,25 @@ function capSpeed () {
 	if (bullet1.velocity.y <= -5) {
 		Matter.Body.setVelocity(bullet1, {
 			x: 0,
-			y: -5
+			y: -10
 		})
 	}
 	if (bullet2.velocity.y <= -5) {
 		Matter.Body.setVelocity(bullet2, {
 			x: 0,
-			y: -5
+			y: -10
 		})
 	}
 	if (bullet3.velocity.y <= -5) {
 		Matter.Body.setVelocity(bullet3, {
 			x: 0,
-			y: -5
+			y: -10
 		})
 	}
 	if (bullet4.velocity.y <= -5) {
 		Matter.Body.setVelocity(bullet4, {
 			x: 0,
-			y: -5
+			y: -10
 		})
 	}
 }

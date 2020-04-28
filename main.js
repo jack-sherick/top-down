@@ -1,7 +1,8 @@
 //the start of a top down bullet hell
 /* Issues and Errors
 	-Holding space sorta breaks the firing system
-	-Collision with the bullet counter and the timers and stuff, depending on how I do bullet/mob collisions, the system works right now, but I dont know what Im going to do
+	-Should make bullets an array, but I'd have to go back on a lot of code
+	-Collisions.exe is not responding
 	-Haven't started with coloring or styling, so the bullets are rainbow
 */
 // module aliases
@@ -43,6 +44,14 @@ document.onkeyup = event => {
   keys[event.keyCode] = false;
 };
 
+const cat = {
+	player: 0x1,
+	bullet: 0x10,
+	bulletCount: 0x100,
+	mobs: 0x1000,
+	reloadTimer: 0x10000,
+}
+
 //delete gravity
 engine.world.gravity.y = 0;
 
@@ -50,8 +59,8 @@ engine.world.gravity.y = 0;
 let player = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight/2, 30, 30, {
 	inertia: Infinity,
 	collisionFilter: {
-		category: 0x0001,
-		mask: 0
+		category: cat.player,
+		mask: cat.mobs
 	}
 });
 World.add(engine.world, player)
@@ -63,8 +72,8 @@ let bullet1 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18,
 		fillStyle: "#e6b800"
 	},
 	collisionFilter: {
-		category: 0x1,
-		mask: 0
+		category: cat.bullet,
+		mask: cat.mobs
 	},
 	inertia: Infinity
 });
@@ -76,8 +85,8 @@ let bullet2 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18,
 		fillStyle: "#e6b800"
 	},
 	collisionFilter: {
-		category: 0x1,
-		mask: 0
+		category: cat.bullet,
+		mask: cat.mobs
 	},
 	inertia: Infinity
 });
@@ -89,8 +98,8 @@ let bullet3 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18,
 		fillStyle: "#e6b800"
 	},
 	collisionFilter: {
-		category: 0x1,
-		mask: 0
+		category: cat.bullet,
+		mask: cat.mobs
 	},
 	inertia: Infinity
 });
@@ -102,8 +111,8 @@ let bullet4 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18,
 		fillStyle: "#e6b800"
 	},
 	collisionFilter: {
-		category: 0x1,
-		mask: 0
+		category: cat.bullet,
+		mask: cat.mobs
 	},
 	inertia: Infinity
 });
@@ -115,8 +124,8 @@ let bullet5 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18,
 		fillStyle: "#e6b800"
 	},
 	collisionFilter: {
-		category: 0x1,
-		mask: 0
+		category: cat.bullet,
+		mask: cat.mobs
 	},
 	inertia: Infinity
 });
@@ -126,7 +135,7 @@ let firedInCycle = [];
 
 let bulletCount5 = Matter.Bodies.rectangle(window.innerWidth-50, 50, 6, 12, {
 	collisionFilter: {
-		category: 0x01,
+		category: cat.bulletCount,
 		mask: 0
 	},
 	render: {
@@ -135,7 +144,7 @@ let bulletCount5 = Matter.Bodies.rectangle(window.innerWidth-50, 50, 6, 12, {
 });
 let bulletCount4 = Matter.Bodies.rectangle(bulletCount5.position.x-20, bulletCount5.position.y, 6, 12, {
 	collisionFilter: {
-		category: 0x01,
+		category: cat.bulletCount,
 		mask: 0
 	},
 	render: {
@@ -144,7 +153,7 @@ let bulletCount4 = Matter.Bodies.rectangle(bulletCount5.position.x-20, bulletCou
 });
 let bulletCount3 = Matter.Bodies.rectangle(bulletCount4.position.x-20, bulletCount4.position.y, 6, 12, {
 	collisionFilter: {
-		category: 0x01,
+		category: cat.bulletCount,
 		mask: 0
 	},
 	render: {
@@ -153,7 +162,7 @@ let bulletCount3 = Matter.Bodies.rectangle(bulletCount4.position.x-20, bulletCou
 });
 let bulletCount2 = Matter.Bodies.rectangle(bulletCount3.position.x-20, bulletCount3.position.y, 6, 12, {
 	collisionFilter: {
-		category: 0x01,
+		category: cat.bulletCount,
 		mask: 0
 	},
 	render: {
@@ -162,7 +171,7 @@ let bulletCount2 = Matter.Bodies.rectangle(bulletCount3.position.x-20, bulletCou
 });
 let bulletCount1 = Matter.Bodies.rectangle(bulletCount2.position.x-20, bulletCount2.position.y, 6, 12, {
 	collisionFilter: {
-		category: 0x01,
+		category: cat.bulletCount,
 		mask: 0
 	},
 	render: {
@@ -172,18 +181,15 @@ let bulletCount1 = Matter.Bodies.rectangle(bulletCount2.position.x-20, bulletCou
 
 World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5])
 
-let clock = 0;
-let reloadTime = 0;
-
 let reloadTimer = Matter.Bodies.rectangle(window.innerWidth-110, 50, 100, 12, {
 	collisionFilter: {
-		category: 0x001,
+		category: cat.reloadTimer,
 		mask: 0
 	}
 })
 let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
 	collisionFilter: {
-		category: 0x001,
+		category: cat.reloadTimer,
 		mask: 0
 	},
 	render: {
@@ -191,20 +197,28 @@ let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
 	}
 })
 
-World.add(engine.world, [reloadTimer, reloadTimer2])
+World.add(engine.world, [reloadTimer, reloadTimer2]);
 
 let mobs = [];
 
 for (let i = 0; i < 8; i++) {
-	mobs[i] = Matter.Bodies.rectangle(window.innerWidth/2, -50, 24, 24, {
-		inertia: Infinity,
-		collisionFilter: {
-			catergory: 0x00001,
-			mask: 0
-		}
-	});
-	World.add(engine.world, mobs[i])
+	mobs[i] = {
+		body: Matter.Bodies.rectangle(window.innerWidth/2, -50, 24, 24, {
+			inertia: Infinity,
+			collisionFilter: {
+				catergory: cat.mobs,
+				mask: cat.player | cat.bullet
+			}
+		}),
+		chasing: false,
+		alive: true
+	}
+	World.add(engine.world, mobs[i].body);
 }
+
+let clock = 0, waveTimer = 0;
+let waveState = 0, mobToSend = 0;
+let reloadTime = 0;
 
 setInterval(function () {
 	
@@ -302,23 +316,28 @@ setInterval(function () {
 
 	clock++;
 	reload();
-	if (clock >= 400) {
+	if (clock >= 400 && mobToSend <= 8) {
 		wave1();
+		if (clock === 400) {
+			waveTimer = 400;
+		}
 	}
 	
 }, 1000/60);
 
 function wave1 () {
-	let waveTimer = clock;
+	waveState = 80;
+	if (clock >= waveTimer+waveState) {
+		waveTimer = clock;
+		mobs[mobToSend].chasing = true;
+		mobToSend++;
+	}
 	for (let i = 0; i < mobs.length; i++) {
-		i--;
-		if (clock >= waveTimer+100) {
-			Matter.Body.setVelocity(mobs[i], {
-				x: 3 * Math.cos(Math.atan2(player.position.y - mobs[i].position.y, player.position.x - mobs[i].position.x)),
-				y: 3 * Math.sin(Math.atan2(player.position.y - mobs[i].position.y, player.position.x - mobs[i].position.x))
+		if (mobs[i].chasing) {
+			Matter.Body.setVelocity(mobs[i].body, {
+				x: 2.5 * Math.cos(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x)),
+				y: 2.5 * Math.sin(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x))
 			})
-			i++;
-			waveTimer = clock;
 		}
 	}
 }

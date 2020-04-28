@@ -1,6 +1,8 @@
 //the start of a top down bullet hell
 /* Issues and Errors
-	-Firing doesn't work right now, just trying on getting a basic system for shooting
+	-Holding space sorta breaks the firing system
+	-Collision with the bullet counter and the timers and stuff, depending on how I do bullet/mob collisions, the system works right now, but I dont know what Im going to do
+	-Haven't started with coloring or styling, so the bullets are rainbow
 */
 // module aliases
 let Engine = Matter.Engine,
@@ -45,67 +47,144 @@ document.onkeyup = event => {
 engine.world.gravity.y = 0;
 
 //player object
-let player = Matter.Bodies.rectangle(500, 500, 30, 30);
+let player = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight/2, 30, 30, {
+	inertia: Infinity,
+	collisionFilter: {
+		category: 0x0001,
+		mask: 0
+	}
+});
 World.add(engine.world, player)
 
 //bullet vars
-let bullet1 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 12, {
-	frictionAir: 0
-});;
+let bullet1 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
+	frictionAir: 0,
+	render: {
+		fillStyle: "#e6b800"
+	},
+	collisionFilter: {
+		category: 0x1,
+		mask: 0
+	},
+	inertia: Infinity
+});
 let bullet1Bool = false;
 
-let bullet2 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 12, {
-	frictionAir: 0
-});;
+let bullet2 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
+	frictionAir: 0,
+	render: {
+		fillStyle: "#e6b800"
+	},
+	collisionFilter: {
+		category: 0x1,
+		mask: 0
+	},
+	inertia: Infinity
+});
 let bullet2Bool = false;
 
-let bullet3 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 12, {
-	frictionAir: 0
-});;
+let bullet3 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
+	frictionAir: 0,
+	render: {
+		fillStyle: "#e6b800"
+	},
+	collisionFilter: {
+		category: 0x1,
+		mask: 0
+	},
+	inertia: Infinity
+});
 let bullet3Bool = false;
 
-let bullet4 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 12, {
-	frictionAir: 0
-});;
+let bullet4 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
+	frictionAir: 0,
+	render: {
+		fillStyle: "#e6b800"
+	},
+	collisionFilter: {
+		category: 0x1,
+		mask: 0
+	},
+	inertia: Infinity
+});
 let bullet4Bool = false;
+
+let bullet5 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
+	frictionAir: 0,
+	render: {
+		fillStyle: "#e6b800"
+	},
+	collisionFilter: {
+		category: 0x1,
+		mask: 0
+	},
+	inertia: Infinity
+});
+let bullet5Bool = false;
 
 let firedInCycle = [];
 
-let bulletCount4 = Matter.Bodies.rectangle(window.innerWidth-50, 50, 6, 12, {
+let bulletCount5 = Matter.Bodies.rectangle(window.innerWidth-50, 50, 6, 12, {
 	collisionFilter: {
-		group: -1
+		category: 0x01,
+		mask: 0
+	},
+	render: {
+		fillStyle: "#e6b800"
+	}
+});
+let bulletCount4 = Matter.Bodies.rectangle(bulletCount5.position.x-20, bulletCount5.position.y, 6, 12, {
+	collisionFilter: {
+		category: 0x01,
+		mask: 0
+	},
+	render: {
+		fillStyle: "#e6b800"
 	}
 });
 let bulletCount3 = Matter.Bodies.rectangle(bulletCount4.position.x-20, bulletCount4.position.y, 6, 12, {
 	collisionFilter: {
-		group: -1
+		category: 0x01,
+		mask: 0
+	},
+	render: {
+		fillStyle: "#e6b800"
 	}
 });
 let bulletCount2 = Matter.Bodies.rectangle(bulletCount3.position.x-20, bulletCount3.position.y, 6, 12, {
 	collisionFilter: {
-		group: -1
+		category: 0x01,
+		mask: 0
+	},
+	render: {
+		fillStyle: "#e6b800"
 	}
 });
 let bulletCount1 = Matter.Bodies.rectangle(bulletCount2.position.x-20, bulletCount2.position.y, 6, 12, {
 	collisionFilter: {
-		group: -1
+		category: 0x01,
+		mask: 0
+	},
+	render: {
+		fillStyle: "#e6b800"
 	}
 });
 
-
-World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4])
+World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5])
 
 let clock = 0;
 let reloadTime = 0;
 
 let reloadTimer = Matter.Bodies.rectangle(window.innerWidth-110, 50, 100, 12, {
 	collisionFilter: {
-		group: -1
+		category: 0x001,
+		mask: 0
 	}
 })
 let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
 	collisionFilter: {
-		group: -1
+		category: 0x001,
+		mask: 0
 	},
 	render: {
 		fillStyle: "#18181d"
@@ -113,6 +192,19 @@ let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
 })
 
 World.add(engine.world, [reloadTimer, reloadTimer2])
+
+let mobs = [];
+
+for (let i = 0; i < 8; i++) {
+	mobs[i] = Matter.Bodies.rectangle(window.innerWidth/2, -50, 24, 24, {
+		inertia: Infinity,
+		collisionFilter: {
+			catergory: 0x00001,
+			mask: 0
+		}
+	});
+	World.add(engine.world, mobs[i])
+}
 
 setInterval(function () {
 	
@@ -172,8 +264,8 @@ setInterval(function () {
 	}
 
 	if (keys[32]) {
-		fireBullet();
 		keys[32] = false;
+		fireBullet();
 	}
 	capSpeed();
 
@@ -201,11 +293,35 @@ setInterval(function () {
 	if (bullet4Bool) {
 		bulletCount4.render.visible = false
 	}
+	if (!bullet5Bool) {
+		bulletCount5.render.visible = true
+	}
+	if (bullet5Bool) {
+		bulletCount5.render.visible = false
+	}
 
 	clock++;
 	reload();
+	if (clock >= 400) {
+		wave1();
+	}
 	
-}, 1000/60)
+}, 1000/60);
+
+function wave1 () {
+	let waveTimer = clock;
+	for (let i = 0; i < mobs.length; i++) {
+		i--;
+		if (clock >= waveTimer+100) {
+			Matter.Body.setVelocity(mobs[i], {
+				x: 3 * Math.cos(Math.atan2(player.position.y - mobs[i].position.y, player.position.x - mobs[i].position.x)),
+				y: 3 * Math.sin(Math.atan2(player.position.y - mobs[i].position.y, player.position.x - mobs[i].position.x))
+			})
+			i++;
+			waveTimer = clock;
+		}
+	}
+}
 
 function fireBullet () {
 	if (!bullet1Bool && firedInCycle.length === 0) {
@@ -260,11 +376,35 @@ function fireBullet () {
 		})
 		firedInCycle.push(bullet4);
 	}
+	if (!bullet5Bool && firedInCycle.length === 0) {
+		World.add(engine.world, bullet5);
+		bullet5Bool = true;
+		Matter.Body.setPosition(bullet5, {
+			x: player.position.x,
+			y: player.position.y - 30
+		})
+		Matter.Body.setVelocity(bullet5, {
+			x: 0,
+			y: -10
+		})
+		firedInCycle.push(bullet5);
+	}
+	keys[32] = false;
 
 	firedInCycle = [];
 }
 function reload () {
-	if (bullet1Bool && bullet2Bool && bullet3Bool && bullet4Bool) {
+	if (keys[82]) {
+		keys[82] = false;
+		if (bullet1Bool) {
+			bullet1Bool = true;
+			bullet2Bool = true;
+			bullet3Bool = true;
+			bullet4Bool = true;
+			bullet5Bool = true;
+		}
+	}
+	if (bullet1Bool && bullet2Bool && bullet3Bool && bullet4Bool && bullet5Bool) {
 		reloadTimer.render.visible = true;
 		reloadTimer2.render.visible = true;
 
@@ -274,14 +414,15 @@ function reload () {
 		})
 
 		if (clock >= reloadTime+200) {
-			World.remove(engine.world, [bullet1, bullet2, bullet3, bullet4])
+			World.remove(engine.world, [bullet1, bullet2, bullet3, bullet4, bullet5])
 			bullet1Bool = false;
 			bullet2Bool = false;
 			bullet3Bool = false;
 			bullet4Bool = false;
+			bullet5Bool = false;
 		}
 	}
-	if (!bullet1Bool || !bullet2Bool || !bullet3Bool || !bullet4Bool) {
+	if (!bullet1Bool || !bullet2Bool || !bullet3Bool || !bullet4Bool || !bullet5Bool) {
 		reloadTime = clock;
 
 		reloadTimer.render.visible = false;
@@ -350,6 +491,12 @@ function capSpeed () {
 	}
 	if (bullet4.velocity.y <= -5) {
 		Matter.Body.setVelocity(bullet4, {
+			x: 0,
+			y: -10
+		})
+	}
+	if (bullet5.velocity.y <= -5) {
+		Matter.Body.setVelocity(bullet5, {
 			x: 0,
 			y: -10
 		})

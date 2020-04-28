@@ -1,9 +1,13 @@
 //the start of a top down bullet hell
 /* Issues and Errors
 	-Holding space sorta breaks the firing system
-	-Should make bullets an array, but I'd have to go back on a lot of code
 	-Collisions.exe is not responding
-	-Haven't started with coloring or styling, so the bullets are rainbow
+	-Color schemes are hard
+*/
+/* Fixes
+	-Arrays!
+	-Bullets aren't rainbow (but coloring needs work)
+	-Starts of a category system
 */
 // module aliases
 let Engine = Matter.Engine,
@@ -60,76 +64,30 @@ let player = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight/2, 
 	inertia: Infinity,
 	collisionFilter: {
 		category: cat.player,
-		mask: cat.mobs
+		mask: 0
 	}
 });
 World.add(engine.world, player)
 
 //bullet vars
-let bullet1 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
-	frictionAir: 0,
-	render: {
-		fillStyle: "#e6b800"
-	},
-	collisionFilter: {
-		category: cat.bullet,
-		mask: cat.mobs
-	},
-	inertia: Infinity
-});
-let bullet1Bool = false;
+let bulletArr = []
 
-let bullet2 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
-	frictionAir: 0,
-	render: {
-		fillStyle: "#e6b800"
-	},
-	collisionFilter: {
-		category: cat.bullet,
-		mask: cat.mobs
-	},
-	inertia: Infinity
-});
-let bullet2Bool = false;
-
-let bullet3 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
-	frictionAir: 0,
-	render: {
-		fillStyle: "#e6b800"
-	},
-	collisionFilter: {
-		category: cat.bullet,
-		mask: cat.mobs
-	},
-	inertia: Infinity
-});
-let bullet3Bool = false;
-
-let bullet4 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
-	frictionAir: 0,
-	render: {
-		fillStyle: "#e6b800"
-	},
-	collisionFilter: {
-		category: cat.bullet,
-		mask: cat.mobs
-	},
-	inertia: Infinity
-});
-let bullet4Bool = false;
-
-let bullet5 = Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
-	frictionAir: 0,
-	render: {
-		fillStyle: "#e6b800"
-	},
-	collisionFilter: {
-		category: cat.bullet,
-		mask: cat.mobs
-	},
-	inertia: Infinity
-});
-let bullet5Bool = false;
+for (let i = 0; i < 5; i++) {
+	bulletArr[i] = {
+		body: Matter.Bodies.rectangle(player.position.x, player.position.y - 18, 12, 9, {
+			frictionAir: 0,
+			render: {
+				fillStyle: "#e6b800"
+			},
+			collisionFilter: {
+				category: cat.bullet,
+				mask: cat.mobs
+			},
+			inertia: Infinity
+		}),
+		bool: false
+	}
+}
 
 let firedInCycle = [];
 
@@ -179,12 +137,17 @@ let bulletCount1 = Matter.Bodies.rectangle(bulletCount2.position.x-20, bulletCou
 	}
 });
 
+let bulletCountArr = [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5]
+
 World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5])
 
 let reloadTimer = Matter.Bodies.rectangle(window.innerWidth-110, 50, 100, 12, {
 	collisionFilter: {
 		category: cat.reloadTimer,
 		mask: 0
+	},
+	render: {
+		visible: false
 	}
 })
 let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
@@ -193,7 +156,8 @@ let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
 		mask: 0
 	},
 	render: {
-		fillStyle: "#18181d"
+		fillStyle: "#18181d",
+		visible: false
 	}
 })
 
@@ -207,7 +171,7 @@ for (let i = 0; i < 8; i++) {
 			inertia: Infinity,
 			collisionFilter: {
 				catergory: cat.mobs,
-				mask: cat.player | cat.bullet
+				mask: cat.bullet
 			}
 		}),
 		chasing: false,
@@ -283,43 +247,30 @@ setInterval(function () {
 	}
 	capSpeed();
 
-	if (!bullet1Bool) {
-		bulletCount1.render.visible = true
-	}
-	if (bullet1Bool) {
-		bulletCount1.render.visible = false
-	}
-	if (!bullet2Bool) {
-		bulletCount2.render.visible = true
-	}
-	if (bullet2Bool) {
-		bulletCount2.render.visible = false
-	}
-	if (!bullet3Bool) {
-		bulletCount3.render.visible = true
-	}
-	if (bullet3Bool) {
-		bulletCount3.render.visible = false
-	}
-	if (!bullet4Bool) {
-		bulletCount4.render.visible = true
-	}
-	if (bullet4Bool) {
-		bulletCount4.render.visible = false
-	}
-	if (!bullet5Bool) {
-		bulletCount5.render.visible = true
-	}
-	if (bullet5Bool) {
-		bulletCount5.render.visible = false
+	for (let i = 0; i < bulletArr.length; i++) {
+		if (!bulletArr[i].bool) {
+			bulletCountArr[i].render.visible = true;
+		}
+		if (bulletArr[i].bool) {
+			bulletCountArr[i].render.visible = false;
+		}
 	}
 
 	clock++;
 	reload();
-	if (clock >= 400 && mobToSend <= 8) {
+	if (clock >= 400 && mobToSend <= 7) {
 		wave1();
 		if (clock === 400) {
 			waveTimer = 400;
+		}
+	}
+
+	for (let i = 0; i < mobs.length; i++) {
+		if (mobs[i].chasing) {
+			Matter.Body.setVelocity(mobs[i].body, {
+				x: 2.5 * Math.cos(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x)),
+				y: 2.5 * Math.sin(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x))
+			})
 		}
 	}
 	
@@ -332,81 +283,23 @@ function wave1 () {
 		mobs[mobToSend].chasing = true;
 		mobToSend++;
 	}
-	for (let i = 0; i < mobs.length; i++) {
-		if (mobs[i].chasing) {
-			Matter.Body.setVelocity(mobs[i].body, {
-				x: 2.5 * Math.cos(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x)),
-				y: 2.5 * Math.sin(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x))
-			})
-		}
-	}
 }
 
 function fireBullet () {
-	if (!bullet1Bool && firedInCycle.length === 0) {
-		World.add(engine.world, bullet1);
-		bullet1Bool = true;
-		Matter.Body.setPosition(bullet1, {
-			x: player.position.x,
-			y: player.position.y - 30
-		})
-		Matter.Body.setVelocity(bullet1, {
-			x: 0,
-			y: -10
-		})
-		firedInCycle.push(bullet1);
-		console.log(firedInCycle.length)
-	}
-	if (!bullet2Bool && firedInCycle.length === 0) {
-		World.add(engine.world, bullet2);
-		bullet2Bool = true;
-		Matter.Body.setPosition(bullet2, {
-			x: player.position.x,
-			y: player.position.y - 30
-		})
-		Matter.Body.setVelocity(bullet2, {
-			x: 0,
-			y: -10
-		})
-		firedInCycle.push(bullet2);
-	}
-	if (!bullet3Bool && firedInCycle.length === 0) {
-		World.add(engine.world, bullet3);
-		bullet3Bool = true;
-		Matter.Body.setPosition(bullet3, {
-			x: player.position.x,
-			y: player.position.y - 30
-		})
-		Matter.Body.setVelocity(bullet3, {
-			x: 0,
-			y: -10
-		})
-		firedInCycle.push(bullet3);		}
-	if (!bullet4Bool && firedInCycle.length === 0) {
-		World.add(engine.world, bullet4);
-		bullet4Bool = true;
-		Matter.Body.setPosition(bullet4, {
-			x: player.position.x,
-			y: player.position.y - 30
-		})
-		Matter.Body.setVelocity(bullet4, {
-			x: 0,
-			y: -10
-		})
-		firedInCycle.push(bullet4);
-	}
-	if (!bullet5Bool && firedInCycle.length === 0) {
-		World.add(engine.world, bullet5);
-		bullet5Bool = true;
-		Matter.Body.setPosition(bullet5, {
-			x: player.position.x,
-			y: player.position.y - 30
-		})
-		Matter.Body.setVelocity(bullet5, {
-			x: 0,
-			y: -10
-		})
-		firedInCycle.push(bullet5);
+	for (let i = 0; i < bulletArr.length; i++) {
+		if (!bulletArr[i].bool && firedInCycle.length === 0) {
+			World.add(engine.world, bulletArr[i].body);
+			bulletArr[i].bool = true;
+			Matter.Body.setPosition(bulletArr[i].body, {
+				x: player.position.x,
+				y: player.position.y - 30
+			})
+			Matter.Body.setVelocity(bulletArr[i].body, {
+				x: 0,
+				y: -10
+			})
+			firedInCycle.push(bulletArr[i]);
+		}
 	}
 	keys[32] = false;
 
@@ -415,15 +308,13 @@ function fireBullet () {
 function reload () {
 	if (keys[82]) {
 		keys[82] = false;
-		if (bullet1Bool) {
-			bullet1Bool = true;
-			bullet2Bool = true;
-			bullet3Bool = true;
-			bullet4Bool = true;
-			bullet5Bool = true;
+		if (bulletArr[0].bool) {
+			for (let i = 0; i < bulletArr.length; i++) {
+				bulletArr[i].bool = true;
+			}
 		}
 	}
-	if (bullet1Bool && bullet2Bool && bullet3Bool && bullet4Bool && bullet5Bool) {
+	if (bulletArr[0].bool && bulletArr[1].bool && bulletArr[2].bool && bulletArr[3].bool && bulletArr[4].bool) {
 		reloadTimer.render.visible = true;
 		reloadTimer2.render.visible = true;
 
@@ -433,15 +324,13 @@ function reload () {
 		})
 
 		if (clock >= reloadTime+200) {
-			World.remove(engine.world, [bullet1, bullet2, bullet3, bullet4, bullet5])
-			bullet1Bool = false;
-			bullet2Bool = false;
-			bullet3Bool = false;
-			bullet4Bool = false;
-			bullet5Bool = false;
+			for (let i = 0; i < bulletArr.length; i++) {
+				World.remove(engine.world, bulletArr[i].body)
+				bulletArr[i].bool = false;
+			}
 		}
 	}
-	if (!bullet1Bool || !bullet2Bool || !bullet3Bool || !bullet4Bool || !bullet5Bool) {
+	if (!bulletArr[0].bool || !bulletArr[1].bool || !bulletArr[2].bool || !bulletArr[3].bool || !bulletArr[4].bool) {
 		reloadTime = clock;
 
 		reloadTimer.render.visible = false;
@@ -490,35 +379,13 @@ function capSpeed () {
 		})
 	}
 
-	if (bullet1.velocity.y <= -5) {
-		Matter.Body.setVelocity(bullet1, {
-			x: 0,
-			y: -10
-		})
-	}
-	if (bullet2.velocity.y <= -5) {
-		Matter.Body.setVelocity(bullet2, {
-			x: 0,
-			y: -10
-		})
-	}
-	if (bullet3.velocity.y <= -5) {
-		Matter.Body.setVelocity(bullet3, {
-			x: 0,
-			y: -10
-		})
-	}
-	if (bullet4.velocity.y <= -5) {
-		Matter.Body.setVelocity(bullet4, {
-			x: 0,
-			y: -10
-		})
-	}
-	if (bullet5.velocity.y <= -5) {
-		Matter.Body.setVelocity(bullet5, {
-			x: 0,
-			y: -10
-		})
+	for (let i = 0; i < bulletArr.length; i++) {
+		if (bulletArr[i].body.velocity.y <= -10) {
+			Matter.Body.setVelocity(bulletArr[i].body, {
+				x: 0,
+				y: -10
+			})
+		}
 	}
 }
 

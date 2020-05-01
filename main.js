@@ -389,6 +389,20 @@ function capSpeed () {
 	}
 }
 
+Events.On(engine, "collisionStart", function (event) {
+	const pairs = event.pairs;
+	for (let i = 0, j = pairs.length; i != j; i++) {
+		for (let x = 0; x < bulletArr.length; x++) {
+			if (pairs[i].bodyA === bulletArr[x].body) {
+				World.remove(engine.world, [pairs[i.bodyA, pairs[i].bodyB]])
+			}
+			if (pairs[i].bodyB === bulletArr[x].body) {
+				World.remove(engine.world, [pairs[i.bodyA, pairs[i].bodyB]])
+			}
+		}
+	}
+})
+
 // run the engine
 Engine.run(engine);
 

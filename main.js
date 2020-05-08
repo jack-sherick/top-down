@@ -1,13 +1,14 @@
 //the start of a top down bullet hell
 /* Issues and Errors
 	-Holding space sorta breaks the firing system
-	-Collisions.exe is not responding
+	-Working on a health system
 	-Color schemes are hard
 */
 /* Fixes
 	-Arrays!
 	-Bullets aren't rainbow (but coloring needs work)
-	-Starts of a category system
+	-Categories work now
+	-Bullet/mob collisions work
 */
 // module aliases
 let Engine = Matter.Engine,
@@ -64,12 +65,31 @@ let player = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight/2, 
 	inertia: Infinity,
 	collisionFilter: {
 		category: cat.player,
+		mask: cat.mobs
+	}
+});
+World.add(engine.world, player);
+
+let playerHP = 100;
+
+let hpBar = Matter.Bodies.rectangle(100, 50, 140, 20, {
+	inertia: Infinity,
+	collisionFilter: {
+		category: cat.reloadTimer,
 		mask: 0
 	}
 });
-World.add(engine.world, player)
+let hpBar2 = Matter.Bodies.rectangle(220, 0, 140, 20, {
+	inertia: Infinity,
+	collisionFilter: {
+		category: cat.reloadTimer,
+		mask: 0
+	}
+})
 
-//bullet vars
+World.add(engine.world, hpBar)
+
+//bullet bodies
 let bulletArr = []
 
 for (let i = 0; i < 5; i++) {
@@ -91,6 +111,7 @@ for (let i = 0; i < 5; i++) {
 
 let firedInCycle = [];
 
+//bullet counters
 let bulletCount5 = Matter.Bodies.rectangle(window.innerWidth-50, 50, 6, 12, {
 	collisionFilter: {
 		category: cat.bulletCount,
@@ -141,6 +162,7 @@ let bulletCountArr = [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bu
 
 World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5])
 
+//create reload timer bodies, rT2 is the color of the canvas and overlaps the first one
 let reloadTimer = Matter.Bodies.rectangle(window.innerWidth-110, 50, 100, 12, {
 	collisionFilter: {
 		category: cat.reloadTimer,
@@ -163,15 +185,16 @@ let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
 
 World.add(engine.world, [reloadTimer, reloadTimer2]);
 
+//mob bodies
 let mobs = [];
 
 for (let i = 0; i < 8; i++) {
 	mobs[i] = {
-		body: Matter.Bodies.rectangle(window.innerWidth/2, -50, 24, 24, {
+		body: Matter.Bodies.rectangle(100+(i*50), -50, 24, 24, {
 			inertia: Infinity,
 			collisionFilter: {
-				catergory: cat.mobs,
-				mask: cat.bullet
+				category: cat.mobs,
+				mask: cat.bullet | cat.mobs | cat.player
 			}
 		}),
 		chasing: false,
@@ -180,10 +203,12 @@ for (let i = 0; i < 8; i++) {
 	World.add(engine.world, mobs[i].body);
 }
 
+//clock++ in recursive loop other variables for timing
 let clock = 0, waveTimer = 0;
 let waveState = 0, mobToSend = 0;
 let reloadTime = 0;
 
+//recursive loop - even though its based on the interval, movement changes on different refresh rates
 setInterval(function () {
 	
 	player.velocity.x*.7;
@@ -268,14 +293,14 @@ setInterval(function () {
 	for (let i = 0; i < mobs.length; i++) {
 		if (mobs[i].chasing) {
 			Matter.Body.setVelocity(mobs[i].body, {
-				x: 2.5 * Math.cos(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x)),
-				y: 2.5 * Math.sin(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x))
+				x: 2 * Math.cos(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x)),
+				y: 2 * Math.sin(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x))
 			})
 		}
-	}
-	
+	}	
 }, 1000/60);
 
+//sends out mobs periodically based on waveState
 function wave1 () {
 	waveState = 80;
 	if (clock >= waveTimer+waveState) {
@@ -285,6 +310,7 @@ function wave1 () {
 	}
 }
 
+//space fires a bullet - holding space breaks it
 function fireBullet () {
 	for (let i = 0; i < bulletArr.length; i++) {
 		if (!bulletArr[i].bool && firedInCycle.length === 0) {
@@ -305,6 +331,8 @@ function fireBullet () {
 
 	firedInCycle = [];
 }
+
+//either mag is empty of r is pressed post a bullet being fired allows for a timer to appear, and the bullets to be refilled
 function reload () {
 	if (keys[82]) {
 		keys[82] = false;
@@ -343,6 +371,7 @@ function reload () {
 	}
 }
 
+//cap speed for bullets and player - not particularly necessary, failsafe against bugs
 function capSpeed () {
 	if (player.velocity.x > 5.6) {
 		Matter.Body.setVelocity(player, {
@@ -389,17 +418,22 @@ function capSpeed () {
 	}
 }
 
-Events.On(engine, "collisionStart", function (event) {
+Events.on(engine, "collisionStart", function (event) {
 	const pairs = event.pairs;
-	for (let i = 0, j = pairs.length; i != j; i++) {
+	for (let i = 0, j = pairs.length; i != j; ++i) {
+		//bullet/anything(bullets only collide with mobs) collision
 		for (let x = 0; x < bulletArr.length; x++) {
-			if (pairs[i].bodyA === bulletArr[x].body) {
-				World.remove(engine.world, [pairs[i.bodyA, pairs[i].bodyB]])
+			if (bulletArr[x].body === pairs[i].bodyA) {
+				World.remove(engine.world, pairs[i].bodyB);
+				World.remove(engine.world, bulletArr[x].body);
 			}
-			if (pairs[i].bodyB === bulletArr[x].body) {
-				World.remove(engine.world, [pairs[i.bodyA, pairs[i].bodyB]])
+			else if (bulletArr[x].body === pairs[i].bodyB) {
+				World.remove(engine.world, pairs[i].bodyA);
+				World.remove(engine.world, bulletArr[x].body);
 			}
 		}
+
+
 	}
 })
 

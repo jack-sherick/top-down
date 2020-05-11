@@ -1,14 +1,16 @@
 //the start of a top down bullet hell
 /* Issues and Errors
 	-Holding space sorta breaks the firing system
-	-Working on a health system
 	-Color schemes are hard
+	-The player doesn't move faster if they move diagonally, but they accelerate faster
+	-Broken canvas collisions - likely should put legitmate walls for collision
 */
 /* Fixes
 	-Arrays!
 	-Bullets aren't rainbow (but coloring needs work)
 	-Categories work now
 	-Bullet/mob collisions work
+	-Player can take damage by collision with mobs
 */
 // module aliases
 let Engine = Matter.Engine,
@@ -62,6 +64,8 @@ engine.world.gravity.y = 0;
 
 //player object
 let player = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight/2, 30, 30, {
+	health: 100,
+	hurtAnim: false,
 	inertia: Infinity,
 	collisionFilter: {
 		category: cat.player,
@@ -70,24 +74,55 @@ let player = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight/2, 
 });
 World.add(engine.world, player);
 
-let playerHP = 100;
-
-let hpBar = Matter.Bodies.rectangle(100, 50, 140, 20, {
+let hpBar = Matter.Bodies.rectangle(120, 50, 200, 12, {
 	inertia: Infinity,
 	collisionFilter: {
 		category: cat.reloadTimer,
 		mask: 0
 	}
 });
-let hpBar2 = Matter.Bodies.rectangle(220, 0, 140, 20, {
+let hpBar2 = Matter.Bodies.rectangle(320, 50, 200, 12, {
 	inertia: Infinity,
+	render: {
+		fillStyle: "#18181d"
+	},
 	collisionFilter: {
 		category: cat.reloadTimer,
 		mask: 0
 	}
-})
+});
 
-World.add(engine.world, hpBar)
+World.add(engine.world, [hpBar, hpBar2])
+
+let leftWall = Matter.Bodies.rectangle(0, window.innerHeight/2, 2, window.innerHeight, {
+	render: {
+		visible: false
+	},
+	collisionFilter: {
+		category: cat.bulletCount,
+		mask: cat.player
+	}
+});
+let rightWall = Matter.Bodies.rectangle(window.innerWidth, window.innerHeight/2, 2, window.innerHeight, {
+	render: {
+		visible: false
+	},
+	collisionFilter: {
+		category: cat.bulletCount,
+		mask: cat.player
+	}
+});
+let bottomWall = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight, window.innerWidth, 2, {
+	render: {
+		visible: false
+	},
+	collisionFilter: {
+		category: cat.bulletCount,
+		mask: cat.player
+	}
+});
+
+World.add(engine.world, [leftWall, rightWall, bottomWall])
 
 //bullet bodies
 let bulletArr = []
@@ -190,7 +225,7 @@ let mobs = [];
 
 for (let i = 0; i < 8; i++) {
 	mobs[i] = {
-		body: Matter.Bodies.rectangle(100+(i*50), -50, 24, 24, {
+		body: Matter.Bodies.rectangle(100+(i*100), -50, 24, 24, {
 			inertia: Infinity,
 			collisionFilter: {
 				category: cat.mobs,
@@ -203,14 +238,19 @@ for (let i = 0; i < 8; i++) {
 	World.add(engine.world, mobs[i].body);
 }
 
-//clock++ in recursive loop other variables for timing
+//clocks
 let clock = 0, waveTimer = 0;
 let waveState = 0, mobToSend = 0;
 let reloadTime = 0;
 
 //recursive loop - even though its based on the interval, movement changes on different refresh rates
 setInterval(function () {
-	
+
+	Matter.Body.setPosition(hpBar2, {
+		x: 320-(2*(100-player.health)),
+		y: hpBar2.position.y
+	})
+
 	player.velocity.x*.7;
 	player.velocity.y*.7;
 	
@@ -297,7 +337,8 @@ setInterval(function () {
 				y: 2 * Math.sin(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x))
 			})
 		}
-	}	
+	}
+
 }, 1000/60);
 
 //sends out mobs periodically based on waveState
@@ -418,6 +459,23 @@ function capSpeed () {
 	}
 }
 
+function playerHurt () {
+	if (player.hurtAnim) {
+		Matter.Body.set(player, {
+			render: {
+				fillStyle: "red"
+			}
+		})
+	}
+	if (!player.hurtAnim) {
+		Matter.Body.set(player, {
+			render: {
+				fillStyle: "#0496FF"
+			}
+		})
+	}
+}
+
 Events.on(engine, "collisionStart", function (event) {
 	const pairs = event.pairs;
 	for (let i = 0, j = pairs.length; i != j; ++i) {
@@ -432,8 +490,14 @@ Events.on(engine, "collisionStart", function (event) {
 				World.remove(engine.world, bulletArr[x].body);
 			}
 		}
-
-
+		if (pairs[i].bodyB === player) {
+			player.health -= 10;
+			World.remove(engine.world, pairs[i].bodyA);
+		}
+		if (pairs[i].bodyA === player) {
+			player.health -= 10;
+			World.remove(engine.world, pairs[i].bodyB);
+		}
 	}
 })
 

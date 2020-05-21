@@ -3,7 +3,8 @@
 	-Holding space sorta breaks the firing system
 	-Color schemes are hard
 	-The player doesn't move faster if they move diagonally, but they accelerate faster
-	-Broken canvas collisions - likely should put legitmate walls for collision
+	-Corner collisions with canvas walls are broken
+	-Even though the main recursive loop runs only every 60th of a second, it changes based on refresh rate
 */
 /* Fixes
 	-Arrays!
@@ -11,7 +12,9 @@
 	-Categories work now
 	-Bullet/mob collisions work
 	-Player can take damage by collision with mobs
+	-Some canvas collision fixes
 */
+
 // module aliases
 let Engine = Matter.Engine,
 	Render = Matter.Render,
@@ -51,12 +54,14 @@ document.onkeyup = event => {
   keys[event.keyCode] = false;
 };
 
+//collision filters
 const cat = {
 	player: 0x1,
 	bullet: 0x10,
 	bulletCount: 0x100,
 	mobs: 0x1000,
 	reloadTimer: 0x10000,
+	wall: 0x100000,
 }
 
 //delete gravity
@@ -69,11 +74,12 @@ let player = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight/2, 
 	inertia: Infinity,
 	collisionFilter: {
 		category: cat.player,
-		mask: cat.mobs
+		mask: cat.mobs | cat.wall
 	}
 });
 World.add(engine.world, player);
 
+//health bars
 let hpBar = Matter.Bodies.rectangle(120, 50, 200, 12, {
 	inertia: Infinity,
 	collisionFilter: {
@@ -94,12 +100,15 @@ let hpBar2 = Matter.Bodies.rectangle(320, 50, 200, 12, {
 
 World.add(engine.world, [hpBar, hpBar2])
 
-let leftWall = Matter.Bodies.rectangle(0, window.innerHeight/2, 2, window.innerHeight, {
+//edge walls
+let leftWall = Matter.Bodies.rectangle(-10, window.innerHeight/2, 2, window.innerHeight, {
 	render: {
 		visible: false
 	},
+	isStatic: true,
+	inertia: Infinity,
 	collisionFilter: {
-		category: cat.bulletCount,
+		category: cat.wall,
 		mask: cat.player
 	}
 });
@@ -107,24 +116,39 @@ let rightWall = Matter.Bodies.rectangle(window.innerWidth, window.innerHeight/2,
 	render: {
 		visible: false
 	},
+	isStatic: true,
+	inertia: Infinity,
 	collisionFilter: {
-		category: cat.bulletCount,
+		category: cat.wall,
 		mask: cat.player
 	}
 });
-let bottomWall = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight, window.innerWidth, 2, {
+let bottomWall = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight+10, window.innerWidth, 2, {
 	render: {
 		visible: false
 	},
+	isStatic: true,
+	inertia: Infinity,
 	collisionFilter: {
-		category: cat.bulletCount,
+		category: cat.wall,
+		mask: cat.player
+	}
+});
+let topWall = Matter.Bodies.rectangle(window.innerWidth/2, 0, window.innerWidth, 2, {
+	render: {
+		visible: false
+	},
+	isStatic: true,
+	inertia: Infinity,
+	collisionFilter: {
+		category: cat.wall,
 		mask: cat.player
 	}
 });
 
-World.add(engine.world, [leftWall, rightWall, bottomWall])
+World.add(engine.world, [leftWall, rightWall, bottomWall, topWall])
 
-//bullet bodies
+//bullets
 let bulletArr = []
 
 for (let i = 0; i < 5; i++) {
@@ -193,9 +217,9 @@ let bulletCount1 = Matter.Bodies.rectangle(bulletCount2.position.x-20, bulletCou
 	}
 });
 
-let bulletCountArr = [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5]
+let bulletCountArr = [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5];
 
-World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5])
+World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5]);
 
 //create reload timer bodies, rT2 is the color of the canvas and overlaps the first one
 let reloadTimer = Matter.Bodies.rectangle(window.innerWidth-110, 50, 100, 12, {
@@ -220,30 +244,40 @@ let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
 
 World.add(engine.world, [reloadTimer, reloadTimer2]);
 
-//mob bodies
+//mobs
 let mobs = [];
 
 for (let i = 0; i < 8; i++) {
 	mobs[i] = {
-		body: Matter.Bodies.rectangle(100+(i*100), -50, 24, 24, {
+		body: Matter.Bodies.rectangle(100+(i*120), -50, 24, 24, {
 			inertia: Infinity,
+			render: {
+				fillStyle: "#d10e00"
+			},
 			collisionFilter: {
 				category: cat.mobs,
 				mask: cat.bullet | cat.mobs | cat.player
 			}
 		}),
 		chasing: false,
-		alive: true
+		alive: true,
+		spawnPos: {
+			x: 100+(i*120),
+			y: -50
+		}
 	}
 	World.add(engine.world, mobs[i].body);
 }
 
 //clocks
 let clock = 0, waveTimer = 0;
-let waveState = 0, mobToSend = 0;
+let waveState = 0, mobToSend = 0, currentWave = 0;
 let reloadTime = 0;
 
-//recursive loop - even though its based on the interval, movement changes on different refresh rates
+//bool for end of wave
+let waveEnd = false;
+
+//recursive function
 setInterval(function () {
 
 	Matter.Body.setPosition(hpBar2, {
@@ -279,32 +313,6 @@ setInterval(function () {
 			y: player.velocity.y
 		})
 	}
-	
-	//canvas collision	
-	if (player.position.x <= 0) {
-		Matter.Body.setVelocity(player, {
-			x: player.velocity.x * -1,
-			y: player.velocity.y
-		})
-	}
-	if (player.position.y <= 0) {
-		Matter.Body.setVelocity(player, {
-			x: player.velocity.x,
-			y: player.velocity.y * -1
-		})
-	}
-	if (player.position.x >= window.innerWidth) {
-		Matter.Body.setVelocity(player, {
-			x: player.velocity.x * -1,
-			y: player.velocity.y
-		})
-	}
-	if (player.position.y >= window.innerHeight) {
-		Matter.Body.setVelocity(player, {
-			x: player.velocity.x,
-			y: player.velocity.y * -1
-		})
-	}
 
 	if (keys[32]) {
 		keys[32] = false;
@@ -323,13 +331,45 @@ setInterval(function () {
 
 	clock++;
 	reload();
+	mobBehavior();
+
 	if (clock >= 400 && mobToSend <= 7) {
-		wave1();
+		waves();
 		if (clock === 400) {
 			waveTimer = 400;
+			currentWave++;
 		}
 	}
+	if (!waveEnd) {
+		for (let i = 0; i < mobs.length; i++) {
+			if (mobs[i].alive) {
+				break;
+			}
+			if (i === mobs.length-1) {
+				waveEnd = true;
+				waveTimer = clock;
+			}
+		}
+	}
+	if (currentWave > 1 && clock >= waveTimer+200) {
+		waves();
+	}
 
+}, 1000/60);
+
+//sends out mobs periodically based on waveState
+function waves () {
+	if (currentWave === 1) {
+		waveState = 80;
+		if (clock >= waveTimer+waveState) {
+			waveTimer = clock;
+			mobs[mobToSend].chasing = true;
+			mobToSend++;
+		}
+	}
+}
+
+function mobBehavior () {
 	for (let i = 0; i < mobs.length; i++) {
 		if (mobs[i].chasing) {
 			Matter.Body.setVelocity(mobs[i].body, {
@@ -337,17 +377,12 @@ setInterval(function () {
 				y: 2 * Math.sin(Math.atan2(player.position.y - mobs[i].body.position.y, player.position.x - mobs[i].body.position.x))
 			})
 		}
-	}
-
-}, 1000/60);
-
-//sends out mobs periodically based on waveState
-function wave1 () {
-	waveState = 80;
-	if (clock >= waveTimer+waveState) {
-		waveTimer = clock;
-		mobs[mobToSend].chasing = true;
-		mobToSend++;
+		if (!mobs[i].alive) {
+			Matter.Body.setPosition(mobs[i].body, {
+				x: mobs[i].spawnPos.x,
+				y: mobs[i].spawnPos.y
+			})
+		}
 	}
 }
 
@@ -412,7 +447,7 @@ function reload () {
 	}
 }
 
-//cap speed for bullets and player - not particularly necessary, failsafe against bugs
+//cap speed for bullets and player
 function capSpeed () {
 	if (player.velocity.x > 5.6) {
 		Matter.Body.setVelocity(player, {
@@ -484,19 +519,71 @@ Events.on(engine, "collisionStart", function (event) {
 			if (bulletArr[x].body === pairs[i].bodyA) {
 				World.remove(engine.world, pairs[i].bodyB);
 				World.remove(engine.world, bulletArr[x].body);
+
+				for (let y = 0; y < mobs.length; y++) {
+					if (mobs[y].body === pairs[i].bodyB) {
+						mobs[y].chasing = false, mobs[y].alive = false;
+					}
+				}
 			}
 			else if (bulletArr[x].body === pairs[i].bodyB) {
 				World.remove(engine.world, pairs[i].bodyA);
 				World.remove(engine.world, bulletArr[x].body);
+
+				for (let y = 0; y < mobs.length; y++) {
+					if (mobs[y].body === pairs[i].bodyA) {
+						mobs[y].chasing = false, mobs[y].alive = false;
+					}
+				}
 			}
 		}
 		if (pairs[i].bodyB === player) {
-			player.health -= 10;
-			World.remove(engine.world, pairs[i].bodyA);
+			if (pairs[i].bodyA !== leftWall && pairs[i].bodyA !== rightWall && pairs[i].bodyA !== bottomWall && pairs[i].bodyA !== topWall) {
+				player.health -= 10;
+				World.remove(engine.world, pairs[i].bodyA);
+
+				for (let y = 0; y < mobs.length; y++) {
+					if (mobs[y].body === pairs[i].bodyA) {
+						mobs[y].chasing = false, mobs[y].alive = false;
+					}
+				}
+			}
+			if (pairs[i].bodyA === bottomWall || pairs[i].bodyA === topWall) {
+				Matter.Body.setVelocity(player, {
+					x: player.velocity.x,
+					y: player.velocity.y * -.8
+				})
+			}
+			if (pairs[i].bodyA === leftWall || pairs[i].bodyA === rightWall) {
+				Matter.Body.setVelocity(player, {
+					x: player.velocity.x * -.8,
+					y: player.velocity.y
+				})
+			}
 		}
 		if (pairs[i].bodyA === player) {
-			player.health -= 10;
-			World.remove(engine.world, pairs[i].bodyB);
+			if (pairs[i].bodyB !== leftWall && pairs[i].bodyB !== rightWall && pairs[i].bodyB !== bottomWall && pairs[i].bodyB !== topWall) {
+				player.health -= 10;
+				World.remove(engine.world, pairs[i].bodyB);
+
+				for (let y = 0; y < mobs.length; y++) {
+					if (mobs[y].body === pairs[i].bodyB) {
+						mobs[y].chasing = false, mobs[y].alive = false;
+					}
+				}
+			}
+			if (pairs[i].bodyB === bottomWall || pairs[i].bodyB === topWall) {
+				Matter.Body.setVelocity(player, {
+					x: player.velocity.x,
+					y: player.velocity.y * -.8
+				})
+			}
+			if (pairs[i].bodyB === leftWall || pairs[i].bodyB === rightWall) {
+				Matter.Body.setVelocity(player, {
+					x: player.velocity.x * -.8,
+					y: player.velocity.y
+				})
+			}
 		}
 	}
 })

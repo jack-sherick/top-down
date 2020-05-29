@@ -4,7 +4,7 @@
 	-Color schemes are hard
 	-The player doesn't move faster if they move diagonally, but they accelerate faster
 	-Broken canvas collisions - likely should put legitmate walls for collision
-	-The booleans in the mobs array are inaccurate, but mobs still aggro properly
+	-Somehow a nested for loop beneath an if in the event listener triggers when it shouldn't
 */
 /* Fixes
 	-Arrays!
@@ -342,6 +342,7 @@ setInterval(function () {
 		waveEnd = false;
 		for (let i = 0; i < mobs.length; i++) {
 			mobs[i].alive = true;
+			console.log(mobs[i].alive)
 		}
 		console.log(mobs)
 	}
@@ -509,7 +510,6 @@ function playerHurt () {
 		player.render.fillStyle = "#b81c1c"
 		if (clock >= hurtTimer+20) {
 			player.hurt = false;
-			console.log(player.hurt)
 		}
 	}
 	if (!player.hurt) {
@@ -529,7 +529,8 @@ Events.on(engine, "collisionStart", function (event) {
 
 				for (let y = 0; y < mobs.length; y++) {
 					if (mobs[y].body === pairs[i].bodyB) {
-						mobs[y].chasing = false, mobs[y].alive = false;
+						mobs[y].chasing = false
+						mobs[y].alive = false;
 					}
 				}
 			}
@@ -539,7 +540,8 @@ Events.on(engine, "collisionStart", function (event) {
 
 				for (let y = 0; y < mobs.length; y++) {
 					if (mobs[y].body === pairs[i].bodyA) {
-						mobs[y].chasing = false, mobs[y].alive = false;
+						mobs[y].chasing = false
+						mobs[y].alive = false;
 					}
 				}
 			}
@@ -552,7 +554,8 @@ Events.on(engine, "collisionStart", function (event) {
 
 				for (let y = 0; y < mobs.length; y++) {
 					if (mobs[y].body === pairs[i].bodyA) {
-						mobs[y].chasing = false, mobs[y].alive = false;
+						mobs[y].chasing = false
+						mobs[y].alive = false;
 					}
 				}
 			}
@@ -577,7 +580,8 @@ Events.on(engine, "collisionStart", function (event) {
 
 				for (let y = 0; y < mobs.length; y++) {
 					if (mobs[y].body === pairs[i].bodyB) {
-						mobs[y].chasing = false, mobs[y].alive = false;
+						mobs[y].chasing = false
+						mobs[y].alive = false;
 					}
 				}
 			}

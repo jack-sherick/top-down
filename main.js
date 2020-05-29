@@ -3,8 +3,7 @@
 	-Holding space sorta breaks the firing system
 	-Color schemes are hard
 	-The player doesn't move faster if they move diagonally, but they accelerate faster
-	-Corner collisions with canvas walls are broken
-	-Even though the main recursive loop runs only every 60th of a second, it changes based on refresh rate
+	-Broken canvas collisions - likely should put legitmate walls for collision
 */
 /* Fixes
 	-Arrays!
@@ -12,9 +11,7 @@
 	-Categories work now
 	-Bullet/mob collisions work
 	-Player can take damage by collision with mobs
-	-Some canvas collision fixes
 */
-
 // module aliases
 let Engine = Matter.Engine,
 	Render = Matter.Render,
@@ -54,14 +51,13 @@ document.onkeyup = event => {
   keys[event.keyCode] = false;
 };
 
-//collision filters
 const cat = {
 	player: 0x1,
 	bullet: 0x10,
 	bulletCount: 0x100,
 	mobs: 0x1000,
 	reloadTimer: 0x10000,
-	wall: 0x100000,
+	wall: 0x100000
 }
 
 //delete gravity
@@ -70,21 +66,27 @@ engine.world.gravity.y = 0;
 //player object
 let player = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight/2, 30, 30, {
 	health: 100,
-	hurtAnim: false,
+	hurt: false,
 	inertia: Infinity,
 	collisionFilter: {
 		category: cat.player,
 		mask: cat.mobs | cat.wall
+	},
+	render: {
+		fillStye: "#3364d6"
 	}
 });
-World.add(engine.world, player);
 
-//health bars
+World.add(engine.world, [player]);
+
 let hpBar = Matter.Bodies.rectangle(120, 50, 200, 12, {
 	inertia: Infinity,
 	collisionFilter: {
 		category: cat.reloadTimer,
 		mask: 0
+	},
+	render: {
+		fillStyle: "#d91a1a"
 	}
 });
 let hpBar2 = Matter.Bodies.rectangle(320, 50, 200, 12, {
@@ -100,8 +102,7 @@ let hpBar2 = Matter.Bodies.rectangle(320, 50, 200, 12, {
 
 World.add(engine.world, [hpBar, hpBar2])
 
-//edge walls
-let leftWall = Matter.Bodies.rectangle(-10, window.innerHeight/2, 2, window.innerHeight, {
+let leftWall = Matter.Bodies.rectangle(0, window.innerHeight/2, 2, window.innerHeight, {
 	render: {
 		visible: false
 	},
@@ -123,7 +124,7 @@ let rightWall = Matter.Bodies.rectangle(window.innerWidth, window.innerHeight/2,
 		mask: cat.player
 	}
 });
-let bottomWall = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight+10, window.innerWidth, 2, {
+let bottomWall = Matter.Bodies.rectangle(window.innerWidth/2, window.innerHeight, window.innerWidth, 2, {
 	render: {
 		visible: false
 	},
@@ -148,7 +149,7 @@ let topWall = Matter.Bodies.rectangle(window.innerWidth/2, 0, window.innerWidth,
 
 World.add(engine.world, [leftWall, rightWall, bottomWall, topWall])
 
-//bullets
+//bullet bodies
 let bulletArr = []
 
 for (let i = 0; i < 5; i++) {
@@ -217,9 +218,9 @@ let bulletCount1 = Matter.Bodies.rectangle(bulletCount2.position.x-20, bulletCou
 	}
 });
 
-let bulletCountArr = [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5];
+let bulletCountArr = [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5]
 
-World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5]);
+World.add(engine.world, [bulletCount1, bulletCount2, bulletCount3, bulletCount4, bulletCount5])
 
 //create reload timer bodies, rT2 is the color of the canvas and overlaps the first one
 let reloadTimer = Matter.Bodies.rectangle(window.innerWidth-110, 50, 100, 12, {
@@ -244,7 +245,7 @@ let reloadTimer2 = Matter.Bodies.rectangle(window.innerWidth-210, 50, 100, 12, {
 
 World.add(engine.world, [reloadTimer, reloadTimer2]);
 
-//mobs
+//mob bodies
 let mobs = [];
 
 for (let i = 0; i < 8; i++) {
@@ -260,7 +261,7 @@ for (let i = 0; i < 8; i++) {
 			}
 		}),
 		chasing: false,
-		alive: true,
+		alive: false,
 		spawnPos: {
 			x: 100+(i*120),
 			y: -50
@@ -269,13 +270,13 @@ for (let i = 0; i < 8; i++) {
 	World.add(engine.world, mobs[i].body);
 }
 
+
 //clocks
 let clock = 0, waveTimer = 0;
-let waveState = 0, mobToSend = 0, currentWave = 0;
-let reloadTime = 0;
+let waveState = 0, waveStart = 100, mobToSend = 0, currentWave = 0;
+let reloadTime = 0, hurtTimer = 0;
 
-//bool for end of wave
-let waveEnd = false;
+let waveEnd = true;
 
 //recursive function
 setInterval(function () {
@@ -331,14 +332,17 @@ setInterval(function () {
 
 	clock++;
 	reload();
+	waves();
 	mobBehavior();
+	playerHurt();
 
-	if (clock >= 400 && mobToSend <= 7) {
-		waves();
-		if (clock === 400) {
-			waveTimer = 400;
-			currentWave++;
+	if (clock === 400) {
+		waveTimer = 400;
+		waveEnd = false;
+		for (let i = 0; i < mobs.length; i++) {
+			mobs[i].alive = true;
 		}
+		console.log(mobs)
 	}
 	if (!waveEnd) {
 		for (let i = 0; i < mobs.length; i++) {
@@ -351,18 +355,23 @@ setInterval(function () {
 			}
 		}
 	}
-	if (currentWave > 1 && clock >= waveTimer+200) {
-		waves();
-	}
 
 }, 1000/60);
 
 //sends out mobs periodically based on waveState
 function waves () {
-	if (currentWave === 1) {
+	if (waveEnd) {
+		if (clock > waveTimer+waveStart) {
+			waveEnd = false;
+			mobToSend = 0
+		}
+	}
+	if (!waveEnd) {
 		waveState = 80;
 		if (clock >= waveTimer+waveState) {
 			waveTimer = clock;
+			//console.log(mobs)
+			//console.log(mobToSend)
 			mobs[mobToSend].chasing = true;
 			mobToSend++;
 		}
@@ -495,19 +504,16 @@ function capSpeed () {
 }
 
 function playerHurt () {
-	if (player.hurtAnim) {
-		Matter.Body.set(player, {
-			render: {
-				fillStyle: "red"
-			}
-		})
+	if (player.hurt) {
+		player.render.fillStyle = "#b81c1c"
+		if (clock >= hurtTimer+20) {
+			player.hurt = false;
+			console.log(player.hurt)
+		}
 	}
-	if (!player.hurtAnim) {
-		Matter.Body.set(player, {
-			render: {
-				fillStyle: "#0496FF"
-			}
-		})
+	if (!player.hurt) {
+		player.render.fillStyle = "#3364d6"
+		hurtTimer = clock;
 	}
 }
 
@@ -540,6 +546,7 @@ Events.on(engine, "collisionStart", function (event) {
 		if (pairs[i].bodyB === player) {
 			if (pairs[i].bodyA !== leftWall && pairs[i].bodyA !== rightWall && pairs[i].bodyA !== bottomWall && pairs[i].bodyA !== topWall) {
 				player.health -= 10;
+				player.hurt = true;
 				World.remove(engine.world, pairs[i].bodyA);
 
 				for (let y = 0; y < mobs.length; y++) {
@@ -564,7 +571,8 @@ Events.on(engine, "collisionStart", function (event) {
 		if (pairs[i].bodyA === player) {
 			if (pairs[i].bodyB !== leftWall && pairs[i].bodyB !== rightWall && pairs[i].bodyB !== bottomWall && pairs[i].bodyB !== topWall) {
 				player.health -= 10;
-				World.remove(engine.world, pairs[i].bodyB);
+				player.hurt = true;
+				World.remove(engine.world, pairs[i].bodyB)
 
 				for (let y = 0; y < mobs.length; y++) {
 					if (mobs[y].body === pairs[i].bodyB) {

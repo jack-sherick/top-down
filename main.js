@@ -4,6 +4,7 @@
 	-Color schemes are hard
 	-The player doesn't move faster if they move diagonally, but they accelerate faster
 	-Broken canvas collisions - likely should put legitmate walls for collision
+	-The booleans in the mobs array are inaccurate, but mobs still aggro properly
 */
 /* Fixes
 	-Arrays!

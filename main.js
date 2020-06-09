@@ -1,13 +1,11 @@
 //the start of a top down bullet hell
 /* Issues and Errors
 	-Holding space sorta breaks the firing system
-	-Color schemes are hard
+	-Corner canvas collisions are broken
 	-The player doesn't move faster if they move diagonally, but they accelerate faster
-	-Broken canvas collisions - likely should put legitmate walls for collision
-	-Somehow a nested for loop beneath an if in the event listener triggers when it shouldn't
-*/
 /* Fixes
 	-Arrays!
+	-The wave ends properly
 	-Bullets aren't rainbow (but coloring needs work)
 	-Categories work now
 	-Bullet/mob collisions work
@@ -274,10 +272,10 @@ for (let i = 0; i < 8; i++) {
 
 //clocks
 let clock = 0, waveTimer = 0;
-let waveState = 0, waveStart = 100, mobToSend = 0, currentWave = 0;
+let waveState = 0, mobToSend = 0, currentWave = 0;
 let reloadTime = 0, hurtTimer = 0;
 
-let waveEnd = true;
+let waveEnd = true, mobWaveSent = false;
 
 //recursive function
 setInterval(function () {
@@ -342,9 +340,8 @@ setInterval(function () {
 		waveEnd = false;
 		for (let i = 0; i < mobs.length; i++) {
 			mobs[i].alive = true;
-			console.log(mobs[i].alive)
 		}
-		console.log(mobs)
+		//console.log(mobs)
 	}
 	if (!waveEnd) {
 		for (let i = 0; i < mobs.length; i++) {
@@ -355,6 +352,9 @@ setInterval(function () {
 				waveEnd = true;
 				waveTimer = clock;
 			}
+			if (mobs[mobs.length-1].chasing) {
+				mobWaveSent = true;
+			}
 		}
 	}
 
@@ -362,19 +362,32 @@ setInterval(function () {
 
 //sends out mobs periodically based on waveState
 function waves () {
-	if (waveEnd) {
-		if (clock > waveTimer+waveStart) {
+	if (waveEnd && currentWave !== 5) {
+		if (clock > waveTimer+150 && clock > 400) {
 			waveEnd = false;
-			mobToSend = 0
+			mobToSend = 0;
+			mobWaveSent = false;
+			for (let i = 0; i < mobs.length; i++) {
+				Matter.Body.setVelocity(mobs[i].body, {
+					x: 0,
+					y: 0
+				})
+				World.add(engine.world, mobs[i].body)
+				mobs[i].alive = true;
+			}
+			currentWave++;
+			console.log(currentWave)
 		}
 	}
-	if (!waveEnd) {
+	if (currentWave === 5) {
+		console.log("I plan to have some sort of power up choice for every five waves")
+	}
+	if (!waveEnd && !mobWaveSent) {
 		waveState = 80;
 		if (clock >= waveTimer+waveState) {
 			waveTimer = clock;
-			//console.log(mobs)
-			//console.log(mobToSend)
 			mobs[mobToSend].chasing = true;
+			//console.log(mobs);
 			mobToSend++;
 		}
 	}

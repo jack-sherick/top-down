@@ -335,6 +335,10 @@ setInterval(function () {
 	mobBehavior();
 	playerHurt();
 
+	if (player.health <= 0) {
+		dead()
+	}
+
 	if (clock === 400) {
 		waveTimer = 400;
 		waveEnd = false;
@@ -359,6 +363,10 @@ setInterval(function () {
 	}
 
 }, 1000/60);
+
+function dead () {
+	window.location.href = "start.html"
+}
 
 //sends out mobs periodically based on waveState
 function waves () {

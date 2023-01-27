@@ -273,7 +273,7 @@ for (let i = 0; i < 8; i++) {
 //clocks
 let clock = 0, waveTimer = 0;
 let waveState = 0, mobToSend = 0, currentWave = 0;
-let reloadTime = 0, hurtTimer = 0;
+let reloadTime = 0, hurtTimer = 0, rpmTimer = 100;
 
 let waveEnd = true, mobWaveSent = false;
 
@@ -314,8 +314,10 @@ setInterval(function () {
 		})
 	}
 
-	if (keys[32]) {
-		keys[32] = false;
+	//fire
+	++rpmTimer;
+	if (keys[32] && rpmTimer > 30) {
+		rpmTimer = 0;
 		fireBullet();
 	}
 	capSpeed();

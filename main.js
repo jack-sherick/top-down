@@ -4,7 +4,6 @@
 	-Corner canvas collisions are broken
 	-The player doesn't move faster if they move diagonally, but they accelerate faster
 /* Fixes
-	-Arrays!
 	-The wave ends properly
 	-Bullets aren't rainbow (but coloring needs work)
 	-Categories work now
@@ -12,6 +11,7 @@
 	-Player can take damage by collision with mobs
 */
 // module aliases
+
 let Engine = Matter.Engine,
 	Render = Matter.Render,
 	World = Matter.World,
